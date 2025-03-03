@@ -28,24 +28,10 @@ ENV LANG="en_US.UTF-8" \
 # Установка системных зависимостей
 RUN apt update || { echo "apt update failed"; exit 1; }
 RUN DEBIAN_FRONTEND=noninteractive apt install --yes --no-install-recommends \
-    autoconf \
-    automake \
-    build-essential \
-    ccache \
-    cmake \
-    curl \
-    git \
-    libffi-dev \
-    libltdl-dev \
-    libssl-dev \
-    libtool \
-    openjdk-17-jdk \
-    patch \
-    python3-pip \
-    python3-setuptools \
-    unzip \
-    zip \
-    zlib1g-dev 2>&1 | tee /tmp/apt-install.log || { echo "apt install failed with details:"; cat /tmp/apt-install.log; apt list -a autoconf automake build-essential ccache cmake curl git libffi-dev libltdl-dev libssl-dev libtool openjdk-17-jdk patch python3-pip python3-setuptools unzip zip zlib1g-dev; exit 1; }
+    autoconf automake build-essential ccache cmake curl git \
+    libffi-dev libssl-dev libtool openjdk-17-jdk patch \
+    python3-pip python3-setuptools unzip zip zlib1g-dev \
+    2>&1 | tee /tmp/apt-install.log || { echo "apt install failed with details:"; cat /tmp/apt-install.log; exit 1; }
 
 # Создание пользователя
 RUN useradd --create-home --shell /bin/bash ${USER} \
@@ -54,14 +40,14 @@ RUN useradd --create-home --shell /bin/bash ${USER} \
 USER ${USER}
 WORKDIR ${HOME_DIR}
 
-# Установка Android SDK с диагностикой
+# Установка Android SDK
 RUN curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip || { echo "curl failed to download SDK tools"; exit 1; }
-RUN unzip sdk-tools.zip -d ${ANDROID_HOME} || { echo "unzip failed"; ls -la; exit 1; }
+RUN unzip sdk-tools.zip -d ${ANDROID_HOME} || { echo "unzip failed"; ls -la ${ANDROID_HOME}; exit 1; }
 RUN rm sdk-tools.zip || { echo "rm sdk-tools.zip failed"; exit 1; }
-RUN mkdir -p ${ANDROID_HOME}/cmdline-tools || { echo "mkdir cmdline-tools failed"; exit 1; }
-RUN mv ${ANDROID_HOME}/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest || { echo "mv cmdline-tools failed"; ls -la ${ANDROID_HOME}; exit 1; }
-RUN yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses 2>&1 | tee /tmp/sdk-licenses.log || { echo "sdkmanager licenses failed with details:"; cat /tmp/sdk-licenses.log; exit 1; }
-RUN ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.0" "platform-tools" 2>&1 | tee /tmp/sdk-install.log || { echo "sdkmanager install failed with details:"; cat /tmp/sdk-install.log; exit 1; }
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools/latest || { echo "mkdir cmdline-tools/latest failed"; exit 1; }
+RUN mv ${ANDROID_HOME}/cmdline-tools/* ${ANDROID_HOME}/cmdline-tools/latest || { echo "mv cmdline-tools failed"; ls -la ${ANDROID_HOME}; ls -la ${ANDROID_HOME}/cmdline-tools; exit 1; }
+RUN yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || { echo "sdkmanager licenses failed"; exit 1; }
+RUN ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.0" "platform-tools" || { echo "sdkmanager install failed"; exit 1; }
 
 # Установка Android NDK
 RUN curl -o ndk.zip https://dl.google.com/android/repository/android-ndk-r25c-linux.zip || { echo "curl failed to download NDK"; exit 1; }
