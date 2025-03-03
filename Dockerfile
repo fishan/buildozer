@@ -26,8 +26,8 @@ ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8"
 
 # Установка системных зависимостей
-RUN apt update -qq > /dev/null \
-    && DEBIAN_FRONTEND=noninteractive apt install -qq --yes --no-install-recommends \
+RUN apt update -qq || { echo "apt update failed"; exit 1; }
+RUN DEBIAN_FRONTEND=noninteractive apt install -qq --yes --no-install-recommends \
     autoconf \
     automake \
     build-essential \
@@ -45,7 +45,7 @@ RUN apt update -qq > /dev/null \
     python3-setuptools \
     unzip \
     zip \
-    zlib1g-dev
+    zlib1g-dev || { echo "apt install failed"; exit 1; }
 
 # Создание пользователя
 RUN useradd --create-home --shell /bin/bash ${USER} \
