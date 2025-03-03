@@ -26,7 +26,7 @@ ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8"
 
 # Установка системных зависимостей
-RUN apt update -qq || { echo "apt update failed"; exit 1; }
+RUN apt update || { echo "apt update failed"; exit 1; }
 RUN DEBIAN_FRONTEND=noninteractive apt install -qq --yes --no-install-recommends \
     autoconf \
     automake \
