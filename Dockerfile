@@ -1,51 +1,31 @@
-# Dockerfile for providing buildozer
+# Dockerfile для сборки Buildozer на aarch64
+# Сборка через GitHub Actions:
+# docker buildx build --platform=linux/arm64 -t ghcr.io/твой_юзер/buildozer:latest .
 #
-# Build with:
-# docker build --tag=kivy/buildozer .
-#
-# Or for macOS using Docker Desktop:
-#
-# docker buildx build --platform=linux/amd64 -t kivy/buildozer .
-#
-# In order to give the container access to your current working directory
-# it must be mounted using the --volume option.
-# Run with (e.g. `buildozer --version`):
-# docker run \
-#   --volume "$HOME/.buildozer":/home/user/.buildozer \
-#   --volume "$PWD":/home/user/hostcwd \
-#   kivy/buildozer --version
-#
-# Or for interactive shell:
-# docker run --interactive --tty --rm \
-#   --volume "$HOME/.buildozer":/home/user/.buildozer \
-#   --volume "$PWD":/home/user/hostcwd \
-#   --entrypoint /bin/bash \
-#   kivy/buildozer
-#
-# If you get a `PermissionError` on `/home/user/.buildozer/cache`,
-# try updating the permissions from the host with:
-# sudo chown $USER -R ~/.buildozer
-# Or simply recreate the directory from the host with:
-# rm -rf ~/.buildozer && mkdir ~/.buildozer
+# Запуск на планшете:
+# docker run --rm \
+#   -v "$PWD":/home/user/hostcwd \
+#   ghcr.io/твой_юзер/buildozer:latest android debug
 
 FROM ubuntu:22.04
 
-ENV USER="user"
-ENV HOME_DIR="/home/${USER}"
-ENV WORK_DIR="${HOME_DIR}/hostcwd" \
-    SRC_DIR="${HOME_DIR}/src" \
-    PATH="${HOME_DIR}/.local/bin:${PATH}"
+ENV USER="user" \
+    HOME_DIR="/home/user" \
+    WORK_DIR="/home/user/hostcwd" \
+    ANDROID_HOME="/home/user/android-sdk" \
+    NDK_HOME="/home/user/android-ndk" \
+    PATH="/home/user/.local/bin:/home/user/android-sdk/cmdline-tools/latest/bin:/home/user/android-ndk:$PATH"
 
-# configures locale
+# Настройка локалей
 RUN apt update -qq > /dev/null \
     && DEBIAN_FRONTEND=noninteractive apt install -qq --yes --no-install-recommends \
-    locales && \
-    locale-gen en_US.UTF-8
+    locales \
+    && locale-gen en_US.UTF-8
 ENV LANG="en_US.UTF-8" \
     LANGUAGE="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8"
 
-# system requirements to build most of the recipes
+# Установка системных зависимостей
 RUN apt update -qq > /dev/null \
     && DEBIAN_FRONTEND=noninteractive apt install -qq --yes --no-install-recommends \
     autoconf \
@@ -53,7 +33,7 @@ RUN apt update -qq > /dev/null \
     build-essential \
     ccache \
     cmake \
-    gettext \
+    curl \
     git \
     libffi-dev \
     libltdl-dev \
@@ -61,25 +41,37 @@ RUN apt update -qq > /dev/null \
     libtool \
     openjdk-17-jdk \
     patch \
-    pkg-config \
     python3-pip \
     python3-setuptools \
-    sudo \
     unzip \
     zip \
     zlib1g-dev
 
-# prepares non root env
-RUN useradd --create-home --shell /bin/bash ${USER}
-# with sudo access and no password
-RUN usermod -append --groups sudo ${USER}
-RUN echo "%sudo ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+# Создание пользователя
+RUN useradd --create-home --shell /bin/bash ${USER} \
+    && chown -R ${USER}:${USER} ${HOME_DIR}
 
 USER ${USER}
+WORKDIR ${HOME_DIR}
+
+# Установка Android SDK
+RUN curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+    && unzip sdk-tools.zip -d ${ANDROID_HOME} \
+    && rm sdk-tools.zip \
+    && mkdir -p ${ANDROID_HOME}/cmdline-tools \
+    && mv ${ANDROID_HOME}/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
+    && yes | sdkmanager --licenses \
+    && sdkmanager --install "platforms;android-33" "build-tools;33.0.0" "platform-tools"
+
+# Установка Android NDK
+RUN curl -o ndk.zip https://dl.google.com/android/repository/android-ndk-r25c-linux.zip \
+    && unzip ndk.zip -d ${HOME_DIR} \
+    && mv android-ndk-r25c ${NDK_HOME} \
+    && rm ndk.zip
+
+# Установка Buildozer
+RUN pip3 install --user --upgrade "Cython<3.0" wheel pip buildozer
+
 WORKDIR ${WORK_DIR}
-COPY --chown=user:user . ${SRC_DIR}
-
-# installs buildozer and dependencies
-RUN pip3 install --user --upgrade "Cython<3.0" wheel pip ${SRC_DIR}
-
 ENTRYPOINT ["buildozer"]
+CMD ["android", "debug"]
