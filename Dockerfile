@@ -40,12 +40,15 @@ RUN useradd --create-home --shell /bin/bash ${USER} \
 USER ${USER}
 WORKDIR ${HOME_DIR}
 
+# Создание директории для Android SDK
+RUN mkdir -p ${ANDROID_HOME} || { echo "mkdir android-sdk failed"; exit 1; }
+
 # Установка Android SDK
 RUN curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip || { echo "curl failed to download SDK tools"; exit 1; }
 RUN unzip sdk-tools.zip -d ${ANDROID_HOME}/cmdline-tools || { echo "unzip failed"; ls -la ${ANDROID_HOME}; exit 1; }
 RUN rm sdk-tools.zip || { echo "rm sdk-tools.zip failed"; exit 1; }
 RUN mkdir -p ${ANDROID_HOME}/cmdline-tools/latest || { echo "mkdir cmdline-tools/latest failed"; exit 1; }
-RUN mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools/* ${ANDROID_HOME}/cmdline-tools/latest/ || { echo "mv cmdline-tools failed"; ls -la ${ANDROID_HOME}; ls -la ${ANDROID_HOME}/cmdline-tools; ls -la ${ANDROID_HOME}/cmdline-tools/cmdline-tools; exit 1; }
+RUN mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools/* ${ANDROID_HOME}/cmdline-tools/latest/ || { echo "mv cmdline-tools failed"; ls -la ${ANDROID_HOME}; exit 1; }
 RUN yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || { echo "sdkmanager licenses failed"; exit 1; }
 RUN ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.0" "platform-tools" || { echo "sdkmanager install failed"; exit 1; }
 
