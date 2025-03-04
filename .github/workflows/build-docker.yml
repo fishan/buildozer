@@ -26,6 +26,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64  # Только amd64 для Codespaces
+          platforms: linux/amd64  # Только amd64
           push: true
           tags: ghcr.io/fishan/buildozer:latest
