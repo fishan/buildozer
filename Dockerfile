@@ -1,11 +1,9 @@
-# Dockerfile для сборки Buildozer на aarch64
+# Dockerfile для сборки Buildozer на linux/amd64
 # Сборка через GitHub Actions:
-# docker buildx build --platform=linux/arm64 -t ghcr.io/твой_юзер/buildozer:latest .
+# docker buildx build --platform=linux/amd64 -t ghcr.io/fishan/buildozer:latest .
 #
-# Запуск на планшете:
-# docker run --rm \
-#   -v "$PWD":/home/user/hostcwd \
-#   ghcr.io/твой_юзер/buildozer:latest android debug
+# Запуск в Codespaces:
+# docker run --rm -v "$PWD":/home/user/hostcwd ghcr.io/fishan/buildozer:latest android debug
 
 FROM ubuntu:22.04
 
@@ -31,6 +29,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt install --yes --no-install-recommends \
     autoconf automake build-essential ccache cmake curl git \
     libffi-dev libssl-dev libtool openjdk-17-jdk patch \
     python3-pip python3-setuptools unzip zip zlib1g-dev \
+    m4 \
     2>&1 | tee /tmp/apt-install.log || { echo "apt install failed with details:"; cat /tmp/apt-install.log; exit 1; }
 
 # Создание пользователя
